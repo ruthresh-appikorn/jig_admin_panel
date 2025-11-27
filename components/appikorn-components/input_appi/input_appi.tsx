@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
+import { Input } from "@heroui/input";
 import { extendVariants } from "@heroui/system";
-import { Input } from "@heroui/react";
 
 export const InputAppiBase = extendVariants(Input, {
   variants: {
@@ -23,7 +23,7 @@ export const InputAppiBase = extendVariants(Input, {
   defaultVariants: {
     size: "md",
     // color: "primary",
-    variant: "flat",
+    variant: "bordered",
     labelPlacement: "inside",
     fullWidth: "true",
   },

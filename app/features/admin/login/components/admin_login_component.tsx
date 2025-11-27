@@ -30,8 +30,8 @@ export const UserNameField = memo(() => {
         classNames={{
           label: "text-sm font-semibold text-slate-200 mb-1",
           inputWrapper:
-            "h-14 rounded-xl !border-none !outline-none border border-white/20 !bg-white/5 transition data-[hover=true]:border-white/40 data-[focus=true]:border-purple-400",
-          input: "text-sm  text-white placeholder:text-slate-400",
+            "h-14 rounded-xl border border-white/20 !bg-white/5 transition data-[hover=true]:border-white/40 data-[focus=true]:border-purple-400",
+          input: "text-sm text-white placeholder:text-slate-400",
         }}
         placeholder="Enter User ID"
         onComplete={(value: string) => {
@@ -75,8 +75,8 @@ export const PasswordField = memo(() => {
         classNames={{
           label: "text-sm font-semibold text-slate-200 mb-1",
           inputWrapper:
-  "h-14 rounded-xl !border-none !outline-none border border-white/20 !bg-white/5 transition data-[hover=true]:border-white/40 data-[focus=true]:border-purple-400",
-          input: "text-sm  text-white placeholder:text-slate-400",
+            "h-14 rounded-xl border border-white/20 !bg-white/5 transition data-[hover=true]:border-white/40 data-[focus=true]:border-purple-400",
+          input: "text-sm text-white placeholder:text-slate-400",
         }}
         placeholder="Enter Password"
         type="text"
