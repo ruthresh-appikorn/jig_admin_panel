@@ -117,7 +117,7 @@ export const SubmitField = memo(() => {
       spinner={
         <div className="h-6 w-6 rounded-full border-3 border-white border-t-transparent animate-spin" />
       }
-      isDisabled={!userName || !password}
+      // isDisabled={!userName || !password}
       type="submit"
     >
       Login

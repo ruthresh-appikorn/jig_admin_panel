@@ -1,44 +1,41 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Form } from "@heroui/form";
+import { useEffect } from "react";
 import { adminDashboardInputModel } from "./store/admin_dashboard_store";
-import {
-  handleAdmin_dashboardSubmit,
-  onInit,
-  onDestroy,
-  resetForm,
-  validateForm
-} from "./controller/admin_dashboard_controller";
+import { onInit, onDestroy } from "./controller/admin_dashboard_controller";
+import { StatsRow, LogsTable } from "./components/admin_dashboard_component";
 
 export default function Admin_dashboardPage() {
-  const [errors, setErrors] = useState<string[]>([]);
-
   // Initialize page on mount
   useEffect(() => {
     onInit();
+
+    // Set dummy data for stats
+    adminDashboardInputModel.update({
+      adminDashboardData: {
+        passedLogs: 7,
+        failedLogs: 3,
+        totalLogs: 10,
+      },
+    });
+
     return () => {
       onDestroy();
     };
   }, []);
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-4">
-        <Form className="space-y-4" onSubmit={(e) => handleAdmin_dashboardSubmit(e, setErrors)}>
-          {errors.length > 0 && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-              {errors.map((error, index) => (
-                <div key={index}>{error}</div>
-              ))}
-            </div>
-          )}
-          
-          <div className="flex gap-2">
-            <button type="submit">Submit</button>
-            <button type="button" onClick={() => { resetForm(); }}>Reset</button>
-          </div>
-        </Form>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white">
+          Admin Dashboard
+        </h1>
+
+        {/* Stats Row */}
+        <StatsRow />
+
+        {/* Logs Table */}
+        <LogsTable />
       </div>
     </div>
   );
