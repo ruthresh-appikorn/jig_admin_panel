@@ -6,9 +6,6 @@ import { adminDashboardInputModel } from "../store/admin_dashboard_store";
 /**
  * Admin_dashboard Component
  */
- 
-
- 
 
 export const TotalLogsField = memo(() => {
   const totalLogs = adminDashboardInputModel.useSelector(
@@ -17,9 +14,7 @@ export const TotalLogsField = memo(() => {
 
   console.log("🔥 TotalLogsField value changed:", totalLogs);
 
-  return (
-    <div></div>
-  );
+  return <div></div>;
 });
 
 export const PassedLogsField = memo(() => {
@@ -29,9 +24,7 @@ export const PassedLogsField = memo(() => {
 
   console.log("🔥 PassedLogsField value changed:", passedLogs);
 
-  return (
-    <div></div>
-  );
+  return <div></div>;
 });
 
 export const FailedLogsField = memo(() => {
@@ -41,9 +34,7 @@ export const FailedLogsField = memo(() => {
 
   console.log("🔥 FailedLogsField value changed:", failedLogs);
 
-  return (
-    <div></div>
-  );
+  return <div></div>;
 });
 
 export const TableField = memo(() => {
@@ -53,7 +44,5 @@ export const TableField = memo(() => {
 
   console.log("🔥 TableField value changed:", table);
 
-  return (
-    <div></div>
-  );
+  return <div></div>;
 });
