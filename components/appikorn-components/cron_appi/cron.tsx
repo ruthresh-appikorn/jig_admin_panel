@@ -1,0 +1,814 @@
+/* eslint-disable react/display-name */
+/* eslint-disable prettier/prettier */
+
+import React, { useEffect, useState, useRef, memo } from "react";
+import {
+  Copy,
+  Check,
+  Clock,
+  Calendar,
+  ChevronDown,
+  Settings,
+  Zap,
+  Info,
+  X,
+} from "lucide-react";
+
+/* TYPES */
+type SchedulePattern =
+  | "everyXMinutes"
+  | "everyXHours"
+  | "dailyTime"
+  | "specificDaysAtTime"
+  | "manual";
+
+interface ScheduleConfig {
+  pattern: SchedulePattern;
+  interval: number;
+  time: string;
+  days: string[];
+}
+
+interface CronParts {
+  minute: string;
+  hour: string;
+  dayOfMonth: string;
+  month: string;
+  dayOfWeek: string;
+}
+
+interface CronExpressionWidgetProps {
+  value?: string;
+  onChange?: (cronExpression: string) => void;
+  placeholder?: string;
+  validate?: (cronExpression: string) => string | null;
+  isInvalid?: boolean;
+  errorMessage?: string;
+}
+
+const CronExpressionWidget: React.FC<CronExpressionWidgetProps> = ({
+  value = "* * * * *",
+  onChange,
+  placeholder = "Select schedule...",
+  validate,
+  isInvalid: propIsInvalid = false,
+  errorMessage: propErrorMessage = "",
+}) => {
+  const [cronExpression, setCronExpression] = useState(value);
+  const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<"simple" | "advanced">("simple");
+  const [showExamples, setShowExamples] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [error, setError] = useState<string>("");
+  const popupRef = useRef<HTMLDivElement>(null);
+
+  const [scheduleConfig, setScheduleConfig] = useState<ScheduleConfig>({
+    pattern: "everyXMinutes",
+    interval: 5,
+    time: "09:00",
+    days: [],
+  });
+
+  const [cronParts, setCronParts] = useState<CronParts>({
+    minute: "*",
+    hour: "*",
+    dayOfMonth: "*",
+    month: "*",
+    dayOfWeek: "*",
+  });
+
+  const daysOfWeek = [
+    { value: "0", short: "Sun", long: "Sunday" },
+    { value: "1", short: "Mon", long: "Monday" },
+    { value: "2", short: "Tue", long: "Tuesday" },
+    { value: "3", short: "Wed", long: "Wednesday" },
+    { value: "4", short: "Thu", long: "Thursday" },
+    { value: "5", short: "Fri", long: "Friday" },
+    { value: "6", short: "Sat", long: "Saturday" },
+  ];
+
+  const commonRules = [
+    { symbol: "*", meaning: "any value" },
+    { symbol: ",", meaning: "value list separator" },
+    { symbol: "-", meaning: "range of values" },
+    { symbol: "/", meaning: "step values" },
+  ];
+
+  const minuteRules = ["0–59 allowed values"];
+  const hourRules = ["0–23 allowed values"];
+  const dayRules = ["1–31 allowed values"];
+  const monthRules = ["1–12 allowed values", "JAN–DEC alternative names"];
+  const weekdayRules = [
+    "0–6 allowed values",
+    "SUN–SAT alternative names",
+    "7 = Sunday (non-standard)",
+  ];
+
+  const minuteOptions = [
+    { value: 1, label: "Every minute" },
+    { value: 5, label: "Every 5 minutes" },
+    { value: 10, label: "Every 10 minutes" },
+    { value: 15, label: "Every 15 minutes" },
+    { value: 20, label: "Every 20 minutes" },
+    { value: 30, label: "Every 30 minutes" },
+    { value: 45, label: "Every 45 minutes" },
+    { value: 60, label: "Every hour" },
+  ];
+
+  const hourOptions = [
+    { value: 1, label: "Every hour" },
+    { value: 2, label: "Every 2 hours" },
+    { value: 3, label: "Every 3 hours" },
+    { value: 4, label: "Every 4 hours" },
+    { value: 6, label: "Every 6 hours" },
+    { value: 8, label: "Every 8 hours" },
+    { value: 12, label: "Every 12 hours" },
+    { value: 24, label: "Every day" },
+  ];
+
+  /* CLICK OUTSIDE HANDLER */
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        popupRef.current &&
+        !popupRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  /* PARSE CRON */
+  useEffect(() => {
+    const parts = cronExpression.split(" ");
+    if (parts.length === 5) {
+      setCronParts({
+        minute: parts[0],
+        hour: parts[1],
+        dayOfMonth: parts[2],
+        month: parts[3],
+        dayOfWeek: parts[4],
+      });
+    }
+  }, [cronExpression]);
+
+  /* GENERATE CRON - FIXED: Don't call onChange during initial render */
+  const generateCronFromConfig = (c: ScheduleConfig, isInitial = false) => {
+    if (c.pattern === "manual") return;
+
+    let minute = "*";
+    let hour = "*";
+    let dom = "*";
+    let dow = "*";
+
+    switch (c.pattern) {
+      case "everyXMinutes":
+        minute = `*/${c.interval}`;
+        break;
+
+      case "everyXHours":
+        minute = "0";
+        hour = `*/${c.interval}`;
+        break;
+
+      case "dailyTime": {
+        const [h, m] = c.time.split(":");
+        minute = m;
+        hour = h;
+        break;
+      }
+
+      case "specificDaysAtTime": {
+        const [h, m] = c.time.split(":");
+        minute = m;
+        hour = h;
+        dow = c.days.length ? c.days.join(",") : "*";
+        break;
+      }
+    }
+
+    const newCron = `${minute} ${hour} ${dom} * ${dow}`;
+    setCronExpression(newCron);
+
+    // Only call onChange if it's not the initial render
+    if (!isInitial) {
+      if (validate && typeof validate === "function") {
+        const validationError = validate(newCron);
+        setError(validationError || "");
+      }
+      onChange?.(newCron);
+    }
+  };
+
+  useEffect(() => {
+    // Pass true for initial render to prevent onChange call
+    generateCronFromConfig(scheduleConfig, true);
+  }, []); // Empty dependency array for initial setup only
+
+  // This effect handles updates to scheduleConfig after initial render
+  useEffect(() => {
+    if (scheduleConfig.pattern !== "manual") {
+      generateCronFromConfig(scheduleConfig);
+    }
+  }, [scheduleConfig]);
+
+  const updateScheduleConfig = (u: Partial<ScheduleConfig>) =>
+    setScheduleConfig((p) => ({ ...p, ...u }));
+
+  const toggleDay = (v: string) => {
+    updateScheduleConfig({
+      days: scheduleConfig.days.includes(v)
+        ? scheduleConfig.days.filter((d) => d !== v)
+        : [...scheduleConfig.days, v],
+    });
+  };
+
+  const copyCron = async () => {
+    await navigator.clipboard.writeText(cronExpression);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1000);
+  };
+
+  const getReadable = () => {
+    const { minute, hour, dayOfWeek, dayOfMonth, month } = cronParts;
+    
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    
+    // Build time string
+    const timeStr = `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`;
+    
+    // Handle minute intervals
+    if (minute.includes("*/")) {
+      const interval = minute.split("/")[1];
+      return `Every ${interval} minute${interval !== "1" ? "s" : ""}`;
+    }
+    
+    // Handle hour intervals
+    if (hour.includes("*/")) {
+      const interval = hour.split("/")[1];
+      return `Every ${interval} hour${interval !== "1" ? "s" : ""}`;
+    }
+    
+    // Build description parts
+    let parts: string[] = [];
+    
+    // Frequency (weekdays or daily)
+    if (dayOfWeek !== "*" && dayOfWeek !== "0") {
+      const names = daysOfWeek.map((d) => d.long);
+      const dayNames = dayOfWeek
+        .split(",")
+        .map((d) => names[+d])
+        .join(", ");
+      parts.push(`Every ${dayNames}`);
+    } else {
+      parts.push("Daily");
+    }
+    
+    // Day of month (can combine with weekdays)
+    if (dayOfMonth !== "*") {
+      parts.push(`on day ${dayOfMonth}`);
+    }
+    
+    // Month
+    if (month !== "*") {
+      const monthIndices = month.split(",").map(m => parseInt(m) - 1);
+      const monthNamesStr = monthIndices.map(i => monthNames[i]).join(", ");
+      parts.push(`in ${monthNamesStr}`);
+    }
+    
+    // Time
+    parts.push(`at ${timeStr}`);
+    
+    return parts.join(" ");
+  };
+
+  const updateCronPart = (field: keyof CronParts, value: string) => {
+    const newParts = { ...cronParts, [field]: value };
+    setCronParts(newParts);
+    const newCron = `${newParts.minute} ${newParts.hour} ${newParts.dayOfMonth} ${newParts.month} ${newParts.dayOfWeek}`;
+    setCronExpression(newCron);
+    
+    if (validate && typeof validate === "function") {
+      const validationError = validate(newCron);
+      setError(validationError || "");
+    }
+    onChange?.(newCron);
+  };
+
+  const handleInputClick = () => {
+    setIsOpen(true);
+  };
+
+  const handleApply = () => {
+    // Ensure cron expression is updated before closing
+    if (activeTab === "advanced") {
+      const newCron = `${cronParts.minute} ${cronParts.hour} ${cronParts.dayOfMonth} ${cronParts.month} ${cronParts.dayOfWeek}`;
+      setCronExpression(newCron);
+      
+      if (validate && typeof validate === "function") {
+        const validationError = validate(newCron);
+        setError(validationError || "");
+      }
+      onChange?.(newCron);
+    }
+    // For simple tab, the cron is already updated via the scheduleConfig effects
+    setIsOpen(false);
+  };
+
+  // Get current selected option label
+  const getSelectedOptionLabel = () => {
+    if (scheduleConfig.pattern === "everyXMinutes") {
+      const option = minuteOptions.find(
+        (opt) => opt.value === scheduleConfig.interval
+      );
+      return option ? option.label : "Every 5 minutes";
+    }
+    if (scheduleConfig.pattern === "everyXHours") {
+      const option = hourOptions.find(
+        (opt) => opt.value === scheduleConfig.interval
+      );
+      return option ? option.label : "Every hour";
+    }
+    return getReadable();
+  };
+
+  const isInvalid = propIsInvalid || !!error;
+  const errorMessage = error || propErrorMessage;
+
+  return (
+    <div className="relative w-full" ref={popupRef}>
+      {/* UPDATED INPUT FIELD WITH SAMPLE CODE STYLE */}
+      <div className="space-y-2">
+        <div
+          className={`w-full px-3 py-2 border-2 rounded-md cursor-pointer transition-all duration-200 
+            ${isInvalid 
+                ? "border-danger-500 hover:border-danger-600" 
+                : "border-[#E4E4E7] dark:border-[#3F3F46] hover:border-[#A1A1AA] dark:hover:border-[#71717A]"
+            }`}
+          onClick={handleInputClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              handleInputClick();
+            }
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${isInvalid ? "bg-danger-50 dark:bg-danger-900/20" : "bg-blue-50 dark:bg-blue-900/20"}`}>
+                <Calendar className={`w-4 h-4 ${isInvalid ? "text-danger-600 dark:text-danger-400" : "text-blue-600 dark:text-blue-400"}`} />
+              </div>
+              <div className="flex flex-col">
+                <span className={`block text-xs font-medium ${isInvalid ? "text-danger-600 dark:text-danger-400" : "text-gray-700 dark:text-gray-300"}`}>
+                  Cron
+                </span>
+                <span className={`text-sm font-medium ${isInvalid ? "text-danger-600 dark:text-danger-400" : "text-gray-900 dark:text-white"}`}>
+                  {getSelectedOptionLabel()}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <ChevronDown className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+            </div>
+          </div>
+        </div>
+        {isInvalid && (
+          <div className="text-tiny text-danger">
+            {errorMessage}
+          </div>
+        )}
+      </div>
+
+      {/* POPUP MODAL */}
+      {isOpen && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-visible border border-gray-200 dark:border-gray-700">
+            {/* YOUR ORIGINAL CRON POPUP DESIGN */}
+            <div className="p-2 sm:p-4 space-y-4 bg-white dark:bg-gray-900">
+              {/* HEADER */}
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <Zap className="w-5 h-5 text-primary" />
+                  <div>
+                    <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                      Schedule Builder
+                    </div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400 italic">
+                      &quot;{getReadable()}&quot;
+                    </div>
+                  </div>
+                </div>
+
+                <div className="hidden md:flex items-center gap-2">
+                  <div className="px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded text-sm font-mono border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">
+                    {cronExpression}
+                  </div>
+
+                  <button
+                    onClick={copyCron}
+                    className="px-3 py-2 bg-primary text-white dark:text-black rounded text-sm flex items-center gap-1 hover:bg-primary/90 transition-colors"
+                  >
+                    {copied ? (
+                      <Check className="w-4 h-4" />
+                    ) : (
+                      <Copy className="w-4 h-4" />
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => setIsOpen(false)}
+                    className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 rounded"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* TAB + INFO ICON */}
+              <div className="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-1">
+                {/* TABS */}
+                <div className="flex">
+                  <button
+                    onClick={() => setActiveTab("simple")}
+                    className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${
+                      activeTab === "simple"
+                        ? "border-primary text-primary"
+                        : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                    }`}
+                  >
+                    <Calendar className="w-4 h-4" />
+                    Simple
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab("advanced")}
+                    className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${
+                      activeTab === "advanced"
+                        ? "border-primary text-primary"
+                        : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                    }`}
+                  >
+                    <Settings className="w-4 h-4" />
+                    Advanced
+                  </button>
+                </div>
+
+                {/* INFO ICON */}
+                <div className="relative group cursor-pointer">
+                  <Info className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-primary" />
+
+                  {/* TOOLTIP */}
+                  <div
+                    className="hidden group-hover:block absolute right-0 top-7 w-80 
+                    bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-xl p-4 text-xs z-50"
+                  >
+                    {/* Common Rules */}
+                    <div className="mb-3">
+                      <div className="font-semibold text-primary mb-2">
+                        Common Rules
+                      </div>
+                      {commonRules.map((r) => (
+                        <div
+                          key={r.symbol}
+                          className="text-gray-700 dark:text-gray-300 mb-1"
+                        >
+                          <span className="font-bold">{r.symbol}</span> —{" "}
+                          {r.meaning}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Minute */}
+                    <div className="border-t border-gray-300 dark:border-gray-600 my-3" />
+                    <div className="font-semibold text-primary mb-1">
+                      Minute
+                    </div>
+                    {minuteRules.map((r) => (
+                      <div key={r} className="text-gray-700 dark:text-gray-300">
+                        {r}
+                      </div>
+                    ))}
+
+                    {/* Hour */}
+                    <div className="border-t border-gray-300 dark:border-gray-600 my-3" />
+                    <div className="font-semibold text-primary mb-1">Hour</div>
+                    {hourRules.map((r) => (
+                      <div key={r} className="text-gray-700 dark:text-gray-300">
+                        {r}
+                      </div>
+                    ))}
+
+                    {/* Day */}
+                    <div className="border-t border-gray-300 dark:border-gray-600 my-3" />
+                    <div className="font-semibold text-primary mb-1">Day</div>
+                    {dayRules.map((r) => (
+                      <div key={r} className="text-gray-700 dark:text-gray-300">
+                        {r}
+                      </div>
+                    ))}
+
+                    {/* Month */}
+                    <div className="border-t border-gray-300 dark:border-gray-600 my-3" />
+                    <div className="font-semibold text-primary mb-1">Month</div>
+                    {monthRules.map((r) => (
+                      <div key={r} className="text-gray-700 dark:text-gray-300">
+                        {r}
+                      </div>
+                    ))}
+
+                    {/* Weekday */}
+                    <div className="border-t border-gray-300 dark:border-gray-600 my-3" />
+                    <div className="font-semibold text-primary mb-1">
+                      Weekday
+                    </div>
+                    {weekdayRules.map((r) => (
+                      <div key={r} className="text-gray-700 dark:text-gray-300">
+                        {r}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* SIMPLE BUILDER */}
+              {activeTab === "simple" && (
+                <div className="space-y-4">
+                  {/* PATTERN BUTTONS */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {[
+                      {
+                        v: "everyXMinutes",
+                        label: "Every X Minutes",
+                        icon: Clock,
+                        description: "Repeat every X minutes",
+                      },
+                      {
+                        v: "everyXHours",
+                        label: "Every X Hours",
+                        icon: Clock,
+                        description: "Repeat every X hours",
+                      },
+                      {
+                        v: "dailyTime",
+                        label: "Daily at Time",
+                        icon: Calendar,
+                        description: "Run once daily at specific time",
+                      },
+                      {
+                        v: "specificDaysAtTime",
+                        label: "Specific Days",
+                        icon: Calendar,
+                        description: "Run on selected days",
+                      },
+                    ].map((btn) => {
+                      const Icon = btn.icon;
+                      const active = scheduleConfig.pattern === btn.v;
+
+                      return (
+                        <button
+                          key={btn.v}
+                          className={`p-3 rounded-lg border w-full flex items-start gap-3 transition-all
+                            ${
+                              active
+                                ? "bg-primary/10 dark:bg-primary/20 border-primary text-primary"
+                                : "bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-primary"
+                            }`}
+                          onClick={() =>
+                            updateScheduleConfig({
+                              pattern: btn.v as SchedulePattern,
+                            })
+                          }
+                        >
+                          <Icon className="w-4 h-4 mt-0.5" />
+                          <div className="flex-1">
+                            <div className="font-medium text-sm">
+                              {btn.label}
+                            </div>
+                            <div className="text-xs text-gray-600 dark:text-gray-400">
+                              {btn.description}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* CONFIG PANEL */}
+                  <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-300 dark:border-gray-600 space-y-4">
+                    {/* EVERY X MINUTES */}
+                    {scheduleConfig.pattern === "everyXMinutes" && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                          Minutes Interval
+                          <div className="relative mt-1">
+                            <select
+                              value={scheduleConfig.interval}
+                              onChange={(e) =>
+                                updateScheduleConfig({
+                                  interval: +e.target.value,
+                                })
+                              }
+                              className="appearance-none bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm w-full text-gray-900 dark:text-white"
+                            >
+                              {minuteOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 dark:text-gray-400 w-4 h-4" />
+                          </div>
+                        </label>
+                      </div>
+                    )}
+
+                    {/* EVERY X HOURS */}
+                    {scheduleConfig.pattern === "everyXHours" && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                          Hours Interval
+                          <div className="relative mt-1">
+                            <select
+                              value={scheduleConfig.interval}
+                              onChange={(e) =>
+                                updateScheduleConfig({
+                                  interval: +e.target.value,
+                                })
+                              }
+                              className="appearance-none bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm w-full text-gray-900 dark:text-white"
+                            >
+                              {hourOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 dark:text-gray-400 w-4 h-4" />
+                          </div>
+                        </label>
+                      </div>
+                    )}
+
+                    {/* DAILY TIME */}
+                    {scheduleConfig.pattern === "dailyTime" && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                          Daily Time
+                          <input
+                            type="time"
+                            value={scheduleConfig.time}
+                            onChange={(e) =>
+                              updateScheduleConfig({ time: e.target.value })
+                            }
+                            className="mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm w-full text-gray-900 dark:text-white"
+                          />
+                        </label>
+                      </div>
+                    )}
+
+                    {/* SPECIFIC DAYS */}
+                    {scheduleConfig.pattern === "specificDaysAtTime" && (
+                      <div className="space-y-4">
+                        <div>
+                          <div className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                            Select Days
+                          </div>
+                          <div className="grid grid-cols-7 gap-1">
+                            {daysOfWeek.map((d) => {
+                              const active = scheduleConfig.days.includes(
+                                d.value
+                              );
+                              return (
+                                <button
+                                  key={d.value}
+                                  onClick={() => toggleDay(d.value)}
+                                  className={`p-2 rounded border text-xs font-medium transition ${
+                                    active
+                                      ? "bg-primary border-primary text-white dark:text-black"
+                                      : "bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-primary"
+                                  }`}
+                                >
+                                  {d.short}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                            Time
+                            <input
+                              type="time"
+                              value={scheduleConfig.time}
+                              onChange={(e) =>
+                                updateScheduleConfig({ time: e.target.value })
+                              }
+                              className="mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm w-full text-gray-900 dark:text-white"
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ADVANCED BUILDER */}
+              {activeTab === "advanced" && (
+                <div className="space-y-4">
+                  <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-300 dark:border-gray-600">
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
+                      Manual Cron Configuration
+                    </h3>
+
+                    {/* LABELS */}
+                    <div className="grid grid-cols-5 gap-2 mb-2 text-center text-xs text-gray-600 dark:text-gray-400 font-mono">
+                      <div>Min</div>
+                      <div>Hour</div>
+                      <div>Day</div>
+                      <div>Mon</div>
+                      <div>WkDay</div>
+                    </div>
+
+                    {/* INPUTS */}
+                    <div className="grid grid-cols-5 gap-2">
+                      {Object.entries(cronParts).map(([field, value]) => (
+                        <input
+                          key={field}
+                          type="text"
+                          value={value}
+                          onChange={(e) =>
+                            updateCronPart(
+                              field as keyof CronParts,
+                              e.target.value
+                            )
+                          }
+                          className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded px-2 py-2 text-center font-mono text-sm text-gray-900 dark:text-white"
+                        />
+                      ))}
+                    </div>
+
+                    {/* EXAMPLES TOGGLE */}
+                    <button
+                      onClick={() => setShowExamples(!showExamples)}
+                      className="w-full mt-3 py-2 text-xs text-gray-600 dark:text-gray-400 hover:text-primary transition flex items-center justify-center gap-1"
+                    >
+                      <ChevronDown
+                        className={`w-3 h-3 transition-transform ${showExamples ? "rotate-180" : ""}`}
+                      />
+                      {showExamples ? "Hide Examples" : "Show Examples"}
+                    </button>
+
+                    {/* EXAMPLES */}
+                    {showExamples && (
+                      <div className="mt-3 pt-3 border-t border-gray-300 dark:border-gray-600">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {[
+                            { expr: "0 0 * * *", desc: "Daily at midnight" },
+                            { expr: "0 9 * * 1-5", desc: "Weekdays at 9 AM" },
+                            { expr: "0 0 1 * *", desc: "Monthly on 1st" },
+                            { expr: "*/15 * * * *", desc: "Every 15 minutes" },
+                          ].map((example) => (
+                            <button
+                              key={example.expr}
+                              onClick={() => setCronExpression(example.expr)}
+                              className="p-3 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 hover:border-primary transition-colors text-left"
+                            >
+                              <div className="font-mono text-xs text-primary mb-1">
+                                {example.expr}
+                              </div>
+                              <div className="text-xs text-gray-700 dark:text-gray-300">
+                                {example.desc}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* APPLY BUTTON */}
+              <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={handleApply}
+                  className="px-4 py-2 bg-primary text-white dark:text-black rounded text-sm font-medium hover:bg-primary/90 transition-colors"
+                >
+                  Apply Schedule
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default CronExpressionWidget;
