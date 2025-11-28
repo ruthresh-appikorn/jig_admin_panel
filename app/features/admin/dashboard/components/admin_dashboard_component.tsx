@@ -5,7 +5,7 @@ import {
   TableAppi,
   TableColumn,
   TableRowData,
-} from "@/components/appikorn-components/table/table_appi";
+} from "@/components/appikorn-components/table/table_appi"; 
 
 /**
  * Admin Dashboard Component
