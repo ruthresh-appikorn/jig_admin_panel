@@ -1,7 +1,6 @@
 /* eslint-disable prettier/prettier */
 import React, { useEffect, useState } from "react";
 import { Button } from "@heroui/button";
-import { Pagination } from "@heroui/pagination";
 import { Select, SelectItem } from "@heroui/select";
 import { Spinner } from "@heroui/spinner";
 import { extendVariants } from "@heroui/system";
@@ -19,6 +18,7 @@ import {
   DateRangePickerAppi,
   DateRange,
 } from "../date_range_picker_appi/date_range_picker";
+import { Pagination } from "@heroui/pagination";
 
 // Define Selection type locally since @heroui/react might not be available
 // This type should be compatible with @heroui/react Selection type
@@ -595,7 +595,6 @@ export function TableAppi({
                   {pages > 1 ? (
                     <Pagination
                       key={paginationKey}
-                      isCompact
                       showControls
                       color="primary"
                       page={currentPage}
@@ -627,7 +626,7 @@ export function TableAppi({
                   </span>
                   <Select
                     size="sm"
-                    selectedKeys={new Set([rowsPerPage.toString()])}
+                    selectedKeys={[rowsPerPage.toString()]}
                     onSelectionChange={(keys) => {
                       const selectedKey = Array.from(keys)[0] as string;
                       if (selectedKey) {
