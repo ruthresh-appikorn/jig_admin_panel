@@ -3,6 +3,25 @@ import {
   adminDashboardFormData,
   adminDashboardInputModel,
 } from "../store/admin_dashboard_store";
+import { getAllTestsApi } from "../api/get_all_tests/get_all_tests_api";
+import { getAllTestsInputDataSchema } from "../api/get_all_tests/get_all_tests_input_model";
+
+export const callGetAllTestsApi = async () => {
+  // Create API request using the input model with empty strings
+  const apiRequest = getAllTestsInputDataSchema.parse({});
+  // Retrieve screen-specific input data dynamically based on controller/screen name
+  const data = adminDashboardInputModel.useStore.getState().adminDashboardData;
+  console.log("Calling getAllTestsApi with request:", apiRequest);
+  try {
+    // Call the API and get the response
+    await getAllTestsApi(apiRequest);
+
+    return true;
+  } catch (error) {
+    console.error("getAllTestsApi call failed:", error);
+    return false;
+  }
+};
 
 export const handleAdmin_dashboardSubmit = async (
   e: React.FormEvent,
@@ -32,6 +51,7 @@ export const handleAdmin_dashboardSubmit = async (
 
 export const onInit = () => {
   console.log("Admin_dashboard page initialized");
+  callGetAllTestsApi();
   // Set dummy data for stats
   adminDashboardInputModel.update({
     adminDashboardData: {
