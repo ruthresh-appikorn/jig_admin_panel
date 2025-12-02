@@ -30,18 +30,18 @@ export const TableAppiBase = extendVariants(Table, {});
 
 // Default slot classNames for TableAppi
 export const tableAppiDefaultClassNames = {
-wrapper: [
-  "bg-transparent",
-  "p-1 sm:p-3 ",
-  "w-full",
-  "overflow-x-auto hide-horizontal-scrollbar",  // ✅ UPDATED HERE
-  "overflow-y-hidden",
-  "border dark:border-gray-700",
-  "scrollbar-thin",
-  "scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600",
-  "scrollbar-track-transparent",
-  "rounded-sm",
-],
+  wrapper: [
+    "bg-transparent",
+    "p-1 sm:p-3 ",
+    "w-full",
+    "overflow-x-auto hide-horizontal-scrollbar", // ✅ UPDATED HERE
+    "overflow-y-hidden",
+    "border dark:border-gray-700",
+    "scrollbar-thin",
+    "scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600",
+    "scrollbar-track-transparent",
+    "rounded-sm",
+  ],
 
   table: "  w-full min-w-[600px] sm:min-w-full border-collapse box-border", // ✅ Prevents table squishing
   th: [
@@ -627,7 +627,7 @@ export function TableAppi({
                   </span>
                   <Select
                     size="sm"
-                    selectedKeys={[rowsPerPage.toString()]}
+                    selectedKeys={new Set([rowsPerPage.toString()])}
                     onSelectionChange={(keys) => {
                       const selectedKey = Array.from(keys)[0] as string;
                       if (selectedKey) {
@@ -731,7 +731,9 @@ export function TableAppi({
                     return (
                       <TableCell
                         key={`${row.id}-${column.uid}`}
-                        className={`text-center ${column.className ?? ""}`.trim()}
+                        className={`text-center ${
+                          column.className ?? ""
+                        }`.trim()}
                       >
                         {cellContent}
                       </TableCell>
