@@ -343,9 +343,80 @@ function buildBoilerTestTable(
 }
 
 /**
- * Downloads pump PDF with professional formatting
+ * Builds simple test table for 3-in-1 components
  */
-export async function downloadPumpPdf(data: TestData): Promise<void> {
+function buildSimpleTestTable(
+  doc: jsPDF,
+  title: string,
+  tests: any[],
+  startY: number
+): number {
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.text(title, 14, startY);
+
+  const tableData = tests.map((test) => [
+    safeToString(test.inspection),
+    safeToString(test.qc_status),
+    safeToString(test.remarks),
+  ]);
+
+  autoTable(doc, {
+    startY: startY + 5,
+    head: [["Name", "QC Status", "Remarks"]],
+    body: tableData,
+    theme: "grid",
+    styles: {
+      fontSize: 9,
+      cellPadding: 4,
+    },
+    headStyles: {
+      fillColor: [220, 220, 220],
+      textColor: [0, 0, 0],
+      fontStyle: "bold",
+    },
+    didParseCell: function (data) {
+      if (data.column.index === 2 && data.section === "body") {
+        const status = data.cell.raw as string;
+        if (status === "PASSED") {
+          data.cell.styles.textColor = [0, 128, 0];
+          data.cell.styles.fontStyle = "bold";
+        } else if (status === "FAILED") {
+          data.cell.styles.textColor = [255, 0, 0];
+          data.cell.styles.fontStyle = "bold";
+        }
+      }
+    },
+    margin: { left: 14, right: 14 },
+  });
+
+  return (doc as any).lastAutoTable.finalY + 10;
+}
+
+/**
+ * Handles PDF output based on mode
+ */
+function handlePdfOutput(
+  doc: jsPDF,
+  fileName: string,
+  mode: "download" | "view"
+) {
+  if (mode === "view") {
+    const blob = doc.output("blob");
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+  } else {
+    doc.save(fileName);
+  }
+}
+
+/**
+ * Downloads or views pump PDF with professional formatting
+ */
+export async function downloadPumpPdf(
+  data: TestData,
+  mode: "download" | "view" = "download"
+): Promise<void> {
   const doc = new jsPDF();
   let yPosition = 40;
 
@@ -508,17 +579,20 @@ export async function downloadPumpPdf(data: TestData): Promise<void> {
   // Footer
   buildProfessionalFooter(doc, 1);
 
-  // Save PDF
+  // Output PDF
   const fileName = `pump-${
     data.COMPONENT_SERIAL_NO || "report"
   }-${Date.now()}.pdf`;
-  doc.save(fileName);
+  handlePdfOutput(doc, fileName, mode);
 }
 
 /**
- * Downloads boiler PDF with professional formatting
+ * Downloads or views boiler PDF with professional formatting
  */
-export async function downloadBoilerPdf(data: TestData): Promise<void> {
+export async function downloadBoilerPdf(
+  data: TestData,
+  mode: "download" | "view" = "download"
+): Promise<void> {
   const doc = new jsPDF();
   let yPosition = 40;
 
@@ -630,17 +704,20 @@ export async function downloadBoilerPdf(data: TestData): Promise<void> {
   // Footer
   buildProfessionalFooter(doc, 1);
 
-  // Save PDF
+  // Output PDF
   const fileName = `boiler-${
     data.COMPONENT_SERIAL_NO || "report"
   }-${Date.now()}.pdf`;
-  doc.save(fileName);
+  handlePdfOutput(doc, fileName, mode);
 }
 
 /**
- * Downloads 3-in-1 PDF with professional formatting
+ * Downloads or views 3-in-1 PDF with professional formatting
  */
-export async function download3In1Pdf(data: TestData): Promise<void> {
+export async function download3In1Pdf(
+  data: TestData,
+  mode: "download" | "view" = "download"
+): Promise<void> {
   const doc = new jsPDF();
   let yPosition = 40;
 
@@ -685,12 +762,118 @@ export async function download3In1Pdf(data: TestData): Promise<void> {
     );
   }
 
+  // Helper to process simple tests
+  const processSimpleTests = (testName: string) => {
+    const tests = data.DETAILS?.filter(
+      (d) => d.TEST_NAME?.toLowerCase() === testName
+    );
+    if (!tests || tests.length === 0) return [];
+
+    return tests.flatMap((test) =>
+      (test.DATAS || []).map((d) => ({
+        serial_no: d.SUB_COMPONENT_SERIAL_NO || "N/A",
+        inspection: d.INSPECTION || "N/A",
+        qc_status: d.QC_STATUS?.toUpperCase() || "IDLE",
+      }))
+    );
+  };
+
+  // 24V Tests (Valves)
+  const valveTests = processSimpleTests("24v_test");
+  if (valveTests.length > 0) {
+    if (yPosition > 200) {
+      doc.addPage();
+      yPosition = 20;
+    }
+    yPosition = buildSimpleTestTable(
+      doc,
+      "24V Tests",
+      valveTests,
+      yPosition
+    );
+  }
+
+  // 230V Tests (Heaters)
+  const heaterTests = processSimpleTests("230v_test");
+  if (heaterTests.length > 0) {
+    if (yPosition > 200) {
+      doc.addPage();
+      yPosition = 20;
+    }
+    yPosition = buildSimpleTestTable(
+      doc,
+      "230V Tests",
+      heaterTests,
+      yPosition
+    );
+  }
+
+  // Motors Tests (Pumps)
+  const motorTests = processSimpleTests("motors_test");
+  if (motorTests.length > 0) {
+    if (yPosition > 200) {
+      doc.addPage();
+      yPosition = 20;
+    }
+    yPosition = buildSimpleTestTable(
+      doc,
+      "Motors Tests",
+      motorTests,
+      yPosition
+    );
+  }
+
+  // Sensors Tests
+  const sensorTests = processSimpleTests("sensors_test");
+  if (sensorTests.length > 0) {
+    if (yPosition > 200) {
+      doc.addPage();
+      yPosition = 20;
+    }
+    yPosition = buildSimpleTestTable(
+      doc,
+      "Sensors Tests",
+      sensorTests,
+      yPosition
+    );
+  }
+
+  // Engineering Remarks
+  const enggRemarks = data.DETAILS?.find(
+    (d) => d.TEST_NAME?.toLowerCase() === "engg_remarks"
+  );
+
+  if (enggRemarks?.DATAS?.[0]) {
+    if (yPosition > 240) {
+      doc.addPage();
+      yPosition = 20;
+    }
+
+    const criteriaList = enggRemarks.DATAS[0].CRITERIA || [];
+    const noticedIssue =
+      criteriaList.find((c) => c.VALUE?.toLowerCase() === "noticed issue")
+        ?.DESC || "No";
+    const remarks =
+      criteriaList.find((c) => c.VALUE?.toLowerCase() === "remark")?.DESC ||
+      "-";
+
+    buildSection(
+      doc,
+      "Engineering Remarks",
+      {
+        "Noticed Any Leakage": noticedIssue,
+        Remark: remarks,
+      },
+      yPosition
+    );
+  }
+
   // Footer
   buildProfessionalFooter(doc, 1);
 
-  // Save PDF
+  // Output PDF
   const fileName = `3-in-1-${
     data.COMPONENT_SERIAL_NO || "report"
   }-${Date.now()}.pdf`;
-  doc.save(fileName);
+  handlePdfOutput(doc, fileName, mode);
 }
