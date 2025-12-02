@@ -1,5 +1,6 @@
 "use client";
 
+import { ThemeProvider as NextThemesProvider } from "next-themes";
 import type { ThemeProviderProps } from "next-themes";
 import * as React from "react";
 
@@ -8,6 +9,6 @@ export interface ProvidersProps {
   themeProps?: ThemeProviderProps;
 }
 
-export function Providers({ children }: ProvidersProps) {
-  return <>{children}</>;
+export function Providers({ children, themeProps }: ProvidersProps) {
+  return <NextThemesProvider {...themeProps}>{children}</NextThemesProvider>;
 }

@@ -81,9 +81,9 @@ export default function Admin_loginPage() {
                 <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white">
                   Welcome Back
                 </h2>
-                <p className="mt-2 text-sm sm:text-sm text-gray-300">
+                {/* <p className="mt-2 text-sm sm:text-sm text-gray-300">
                   Sign in to orchestrate your enterprise with Appikorn
-                </p>
+                </p> */}
               </div>
 
               <Form

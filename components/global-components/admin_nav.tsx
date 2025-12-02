@@ -18,7 +18,7 @@ export function AdminNav({
   onLogout,
   showThemeToggle = true,
 }: AdminNavProps) {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -41,7 +41,7 @@ export function AdminNav({
   };
 
   const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
+    setTheme(resolvedTheme === "dark" ? "light" : "dark");
   };
 
   return (
@@ -59,7 +59,7 @@ export function AdminNav({
                 className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
                 aria-label="Toggle dark mode"
               >
-                {theme === "dark" ? (
+                {resolvedTheme === "dark" ? (
                   <Sun className="w-5 h-5 text-yellow-500" />
                 ) : (
                   <Moon className="w-5 h-5 text-gray-700" />
