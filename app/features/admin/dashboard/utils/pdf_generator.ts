@@ -61,12 +61,30 @@ function formatDateTime(ms: string | number): string {
 }
 
 /**
+ * Loads an image from a URL
+ */
+function loadImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "Anonymous";
+    img.src = url;
+    img.onload = () => resolve(img);
+    img.onerror = (e) => {
+      console.warn("Failed to load logo image", e);
+      // Resolve with a dummy image or null to prevent failure
+      resolve(new Image());
+    };
+  });
+}
+
+/**
  * Builds professional header with logo and title
  */
 function buildProfessionalHeader(
   doc: jsPDF,
   title: string,
-  pageNumber: number
+  pageNumber: number,
+  logoImg?: HTMLImageElement
 ) {
   if (pageNumber !== 1) return;
 
@@ -78,9 +96,34 @@ function buildProfessionalHeader(
   doc.line(14, 30, pageWidth - 14, 30);
 
   // Company name/logo placeholder
-  doc.setFontSize(10);
-  doc.setTextColor(100, 100, 100);
-  doc.text("SCHOPIQ", 14, 15);
+  if (logoImg && logoImg.src) {
+    try {
+      // Add logo (adjust dimensions as needed)
+      const maxHeight = 18;
+      const maxWidth = 50;
+      const ratio = logoImg.width / logoImg.height;
+
+      let logoWidth = maxHeight * ratio;
+      let logoHeight = maxHeight;
+
+      // If width exceeds max width, scale down by width
+      if (logoWidth > maxWidth) {
+        logoWidth = maxWidth;
+        logoHeight = maxWidth / ratio;
+      }
+
+      doc.addImage(logoImg, "PNG", 14, 8, logoWidth, logoHeight);
+    } catch (e) {
+      console.error("Error adding logo to PDF", e);
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.text("SCHOPIQ", 14, 15);
+    }
+  } else {
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text("SCHOPIQ", 14, 15);
+  }
 
   // Title - centered
   doc.setFontSize(18);
@@ -420,8 +463,11 @@ export async function downloadPumpPdf(
   const doc = new jsPDF();
   let yPosition = 40;
 
+  // Load logo
+  const logo = await loadImage("/assets/common/png/schopiq_logo.png");
+
   // Header
-  buildProfessionalHeader(doc, "Pump Test Report", 1);
+  buildProfessionalHeader(doc, "Pump Test Report", 1, logo);
 
   // Jig Details
   yPosition = buildSection(
@@ -596,8 +642,11 @@ export async function downloadBoilerPdf(
   const doc = new jsPDF();
   let yPosition = 40;
 
+  // Load logo
+  const logo = await loadImage("/assets/common/png/schopiq_logo.png");
+
   // Header
-  buildProfessionalHeader(doc, "Boiler Test Report", 1);
+  buildProfessionalHeader(doc, "Boiler Test Report", 1, logo);
 
   // Jig Details
   yPosition = buildSection(
@@ -721,8 +770,11 @@ export async function download3In1Pdf(
   const doc = new jsPDF();
   let yPosition = 40;
 
+  // Load logo
+  const logo = await loadImage("/assets/common/png/schopiq_logo.png");
+
   // Header
-  buildProfessionalHeader(doc, "3-in-1 JIG Test Report", 1);
+  buildProfessionalHeader(doc, "3-in-1 JIG Test Report", 1, logo);
 
   // Jig Details
   yPosition = buildSection(
@@ -785,12 +837,7 @@ export async function download3In1Pdf(
       doc.addPage();
       yPosition = 20;
     }
-    yPosition = buildSimpleTestTable(
-      doc,
-      "24V Tests",
-      valveTests,
-      yPosition
-    );
+    yPosition = buildSimpleTestTable(doc, "24V Tests", valveTests, yPosition);
   }
 
   // 230V Tests (Heaters)
@@ -800,12 +847,7 @@ export async function download3In1Pdf(
       doc.addPage();
       yPosition = 20;
     }
-    yPosition = buildSimpleTestTable(
-      doc,
-      "230V Tests",
-      heaterTests,
-      yPosition
-    );
+    yPosition = buildSimpleTestTable(doc, "230V Tests", heaterTests, yPosition);
   }
 
   // Motors Tests (Pumps)
