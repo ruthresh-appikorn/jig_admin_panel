@@ -60,7 +60,7 @@ export default function Admin_loginPage() {
           <Card className="w-full max-w-lg border border-white/10 bg-white/10 backdrop-blur-2xl shadow-2xl shadow-purple-900/30">
             <CardBody className="p-2 sm:p-4 md:p-8 space-y-4 md:space-y-6">
               <div className="text-center">
-                <div className="mb-4 flex justify-center">
+                {/* <div className="mb-4 flex justify-center">
                   <motion.div
                     animate={{ rotate: [0, 5, -5, 0] }}
                     className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary via-purple-600 to-pink-600"
@@ -68,7 +68,7 @@ export default function Admin_loginPage() {
                   >
                     <span className="text-xl font-bold text-white">A</span>
                   </motion.div>
-                </div>
+                </div> */}
                 <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white">
                   Welcome Back
                 </h2>
@@ -102,7 +102,7 @@ export default function Admin_loginPage() {
                 <SubmitField />
               </Form>
 
-              <Divider className="my-2 sm:my-6 border-white/10" />
+              {/* <Divider className="my-2 sm:my-6 border-white/10" /> */}
 
               <div className="text-center text-gray-400">
                 <p className="text-sm">
