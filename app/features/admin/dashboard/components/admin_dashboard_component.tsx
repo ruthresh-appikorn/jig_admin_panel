@@ -1,5 +1,5 @@
 import { Card, CardBody } from "@heroui/card";
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { adminDashboardInputModel } from "../store/admin_dashboard_store";
 import {
   TableAppi,
@@ -46,16 +46,40 @@ const StatCard = ({ title, value, bgColor, textColor }: StatCardProps) => {
 };
 
 // Stats Row Component
+// Stats Row Component
 export const StatsRow = memo(() => {
-  const passedLogs = adminDashboardInputModel.useSelector(
-    (state) => state.adminDashboardData.passedLogs || 0
+  const getAllTestsData = getAllTestsOutputModel.useSelector(
+    (state) => state.getAllTestsData.data.getTests || []
   );
-  const failedLogs = adminDashboardInputModel.useSelector(
-    (state) => state.adminDashboardData.failedLogs || 0
-  );
-  const totalLogs = adminDashboardInputModel.useSelector(
-    (state) => state.adminDashboardData.totalLogs || 0
-  );
+
+  const { passedLogs, failedLogs, totalLogs } = useMemo(() => {
+    let passed = 0;
+    let failed = 0;
+    let total = 0;
+
+    for (const test of getAllTestsData) {
+      let rows: any[] = [];
+      if (isPumpComponent(test)) {
+        rows = processPumpTestData(test);
+      } else if (isBoilerComponent(test)) {
+        rows = processBoilerTestData(test);
+      } else if (is3In1Component(test)) {
+        rows = process3In1TestData(test);
+      }
+
+      for (const row of rows) {
+        total++;
+        // normalizeQcStatus returns "PASSED", "FAIL", "IDLE", "N/A"
+        if (row.qcStatus === "PASSED") {
+          passed++;
+        } else if (row.qcStatus === "FAIL") {
+          failed++;
+        }
+      }
+    }
+
+    return { passedLogs: passed, failedLogs: failed, totalLogs: total };
+  }, [getAllTestsData]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
