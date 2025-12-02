@@ -4,6 +4,30 @@ import {
   adminLoginInputModel,
 } from "../store/admin_login_store";
 import { navigate } from "@/core/navigation/simplified_router";
+import { loginApi } from "../api/login/login_api";
+import { loginInputDataSchema } from "../api/login/login_input_model";
+
+export const callLoginApi = async () => {
+  // Create API request using the input model with empty strings
+
+  const data = adminLoginInputModel.useStore.getState().adminLoginData;
+
+  const apiRequest = loginInputDataSchema.parse({
+    username: data.userName,
+    password: data.password,
+  });
+
+  console.log("Calling loginApi with request:", apiRequest);
+  try {
+    // Call the API and get the response
+    await loginApi(apiRequest);
+
+    return true;
+  } catch (error) {
+    console.error("loginApi call failed:", error);
+    return false;
+  }
+};
 
 export const handleAdmin_loginSubmit = async (
   e: React.FormEvent,
@@ -24,7 +48,9 @@ export const handleAdmin_loginSubmit = async (
     // Log the data for testing purposes
     // console.log("Admin_login Data Submitted:", currentData);
 
-    navigate("/features/admin/dashboard");
+    callLoginApi();
+
+    
 
     // alert("Admin_login data saved successfully!");
   } catch (error) {
