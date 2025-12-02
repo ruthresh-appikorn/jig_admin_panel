@@ -31,7 +31,7 @@ export const UserNameField = memo(() => {
           label: "text-sm font-semibold text-slate-200 mb-1",
           inputWrapper:
             "h-14 rounded-xl border border-white/20 !bg-white/5 transition data-[hover=true]:border-white/40 data-[focus=true]:border-purple-400",
-          input: "text-sm text-white placeholder:text-slate-400",
+          input: "!text-white text-sm placeholder:text-slate-400",
         }}
         placeholder="Enter User ID"
         onComplete={(value: string) => {
@@ -60,7 +60,7 @@ export const PasswordField = memo(() => {
         defaultValue={password}
         endContent={
           <button
-            className="focus:outline-none text-default-500 hover:text-default-700 dark:text-default-400 dark:hover:text-default-300"
+            className="focus:outline-none !text-white hover:!text-white dark:!text-white"
             type="button"
             onClick={() => setIsVisible(!isVisible)}
           >
@@ -76,7 +76,7 @@ export const PasswordField = memo(() => {
           label: "text-sm font-semibold text-slate-200 mb-1",
           inputWrapper:
             "h-14 rounded-xl border border-white/20 !bg-white/5 transition data-[hover=true]:border-white/40 data-[focus=true]:border-purple-400",
-          input: "text-sm text-white placeholder:text-slate-400",
+          input: "!text-white text-sm placeholder:text-slate-400",
         }}
         placeholder="Enter Password"
         type="text"
