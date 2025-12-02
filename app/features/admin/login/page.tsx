@@ -19,16 +19,25 @@ import {
   UserNameField,
 } from "./components/admin_login_component";
 
+export const dynamic = "force-dynamic";
+
 export default function Admin_loginPage() {
   const [errors, setErrors] = useState<string[]>([]);
+  const [isClient, setIsClient] = useState(false);
 
   // Initialize page on mount
   useEffect(() => {
+    setIsClient(true);
     onInit();
     return () => {
       onDestroy();
     };
   }, []);
+
+  // Don't render anything until client-side to avoid hydration issues
+  if (!isClient) {
+    return null;
+  }
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-blue-950 via-slate-950 to-purple-950 text-white">

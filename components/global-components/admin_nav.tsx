@@ -25,8 +25,9 @@ export function AdminNav({
     setMounted(true);
   }, []);
 
-  const name =
-    loginOutputModel.useStore.getState().loginData.data.login.user.USERNAME;
+  const name = mounted
+    ? loginOutputModel.useStore.getState().loginData.data.login.user.USERNAME
+    : "";
 
   const handleLogout = () => {
     console.log("///////////", name);

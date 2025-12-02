@@ -1,17 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "export", // ✅ Static export for Firebase hosting
+  output: "export",
   trailingSlash: true,
   images: {
-    unoptimized: true, // Required for static export
+    unoptimized: true,
   },
   eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
   typescript: {
-    // Skip type checking during build since we've already validated types
     ignoreBuildErrors: false,
   },
   async redirects() {
