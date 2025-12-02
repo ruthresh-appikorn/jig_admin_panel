@@ -1,5 +1,6 @@
 "use client";
 
+import { loginOutputModel } from "@/app/features/admin/login/api/login/login_store";
 import { adminLoginInputModel } from "@/app/features/admin/login/store/admin_login_store";
 import { navigate } from "@/core/navigation/simplified_router";
 import { LogOut, Moon, Sun } from "lucide-react";
@@ -24,7 +25,12 @@ export function AdminNav({
     setMounted(true);
   }, []);
 
+  const name =
+    loginOutputModel.useStore.getState().loginData.data.login.user.USERNAME;
+
   const handleLogout = () => {
+    console.log("///////////", name);
+
     if (onLogout) {
       onLogout();
     } else {
@@ -42,7 +48,7 @@ export function AdminNav({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
         <div className="flex flex-row justify-between items-center">
           <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white truncate">
-            {title}
+            Welcome {name || title}
           </h1>
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Theme Toggle */}
