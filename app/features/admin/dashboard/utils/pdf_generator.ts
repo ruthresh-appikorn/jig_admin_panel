@@ -117,12 +117,12 @@ function buildProfessionalHeader(
       console.error("Error adding logo to PDF", e);
       doc.setFontSize(10);
       doc.setTextColor(100, 100, 100);
-      doc.text("SCHOPIQ", 14, 15);
+      doc.text("Fresh & Honest", 14, 15);
     }
   } else {
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
-    doc.text("SCHOPIQ", 14, 15);
+    doc.text("Fresh & Honest", 14, 15);
   }
 
   // Title - centered
@@ -464,7 +464,7 @@ export async function downloadPumpPdf(
   let yPosition = 40;
 
   // Load logo
-  const logo = await loadImage("/assets/common/png/schopiq_logo.png");
+  const logo = await loadImage("/assets/common/png/fresh_honest.png");
 
   // Header
   buildProfessionalHeader(doc, "Pump Test Report", 1, logo);
@@ -643,7 +643,7 @@ export async function downloadBoilerPdf(
   let yPosition = 40;
 
   // Load logo
-  const logo = await loadImage("/assets/common/png/schopiq_logo.png");
+  const logo = await loadImage("/assets/common/png/fresh_honest.png");
 
   // Header
   buildProfessionalHeader(doc, "Boiler Test Report", 1, logo);
@@ -771,7 +771,7 @@ export async function download3In1Pdf(
   let yPosition = 40;
 
   // Load logo
-  const logo = await loadImage("/assets/common/png/schopiq_logo.png");
+  const logo = await loadImage("/assets/common/png/fresh_honest.png");
 
   // Header
   buildProfessionalHeader(doc, "3-in-1 JIG Test Report", 1, logo);
