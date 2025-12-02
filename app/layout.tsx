@@ -7,6 +7,7 @@ import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
 import { Providers } from "./providers";
 import { NavbarProvider } from "./context/NavbarContext";
+import { ConditionalAdminLayout } from "@/components/global-components/conditional_admin_layout";
 
 export const metadata: Metadata = {
   title: {
